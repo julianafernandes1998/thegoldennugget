@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Golden Nugget Mission</title>
+    <style>
+        /* ESTILOS CSS */
+        body {
+            background-color: #4b5320; 
+            color: #d4af37; 
+            font-family: Georgia, serif;
+            text-align: center;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: rgba(0, 0, 0, 0.4); 
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            margin-top: 20px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: #d4af37;
+            text-shadow: 2px 2px 4px #000000;
+        }
+        h2 {
+            font-size: 1.5em;
+            margin-top: 0;
+        }
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        input[type="text"] {
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #d4af37;
+            background-color: #f0f0f0;
+            color: #4b5320;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 1.2em;
+            font-family: Arial, sans-serif;
+            text-transform: uppercase;
+        }
+        button {
+            padding: 12px 25px;
+            background-color: #d4af37;
+            color: #4b5320;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #ffda6a;
+        }
+        .feedback {
+            margin-top: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .error {
+            color: #ff6347; 
+        }
+        .success {
+            color: #90ee90; 
+        }
+        .pieces-count {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #d4af37;
+            border-radius: 5px;
+            font-size: 1.2em;
+        }
+        /* Estilo para esconder a pista */
+        .hidden-clue {
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border: 1px dashed #d4af37;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+        .hidden-clue p {
+            font-size: 0.9em;
+            color: #4b5320; 
+            text-shadow: 1px 1px 2px #d4af37; 
+            transition: color 0.5s, text-shadow 0.5s;
+        }
+        .hidden-clue.revealed p {
+            color: #d4af37; 
+            text-shadow: none;
+        }
+        .hidden-clue.revealed {
+            cursor: default;
+            border-style: solid;
+        }
+        #clue-toggle-button {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>THE GOLDEN NUGGET MISSION</h1>
+
+    <div class="container">
+        
+        <div id="mission-content">
+            </div>
+
+        <div id="action-area">
+            <div id="clue-toggle-area" style="display:none;">
+                 <button id="clue-toggle-button" onclick="toggleClueVisibility()">DESBLOQUEAR PISTA</button>
+            </div>
+
+            <div id="input-area">
+                <p id="input-prompt">Introduza o código secreto:</p>
+                <input type="text" id="user-input" placeholder="RESPOSTA" maxlength="30">
+                <button onclick="checkCode()">Verificar Código</button>
+                <div id="feedback" class="feedback"></div>
+            </div>
+            
+            <div id="advance-area" style="display:none;">
+                <button onclick="advanceStage()">AVANÇAR</button>
+            </div>
+        </div>
+        
+        <div class="pieces-count">
+            Peças do Golden Memory recolhidas: <span id="pieces-collected">0</span>/3
+        </div>
+    </div>
+
+    <script>
+        // JAVASCRIPT
+        let currentStage = 1; 
+        let piecesCollected = 0;
+        let currentClueText = ""; 
+        const TOTAL_PIECES = 3; 
+
+        // Estrutura do Jogo:
+        const gameStages = {
+            1: { // User 1.1: Candeeiro Ti (Não Bloqueada)
+                instruction: "<h2>Início: Sala de Estar</h2><p>Missão Secreta: Para o meu Nugget. A saída está selada. Para poderes sair, tens de encontrar as 3 peças da Memória Dourada. Começa onde a luz brilha sobre 'Ti'. **Do que estamos a falar? (2 letras)**</p>",
+                clueText: "", 
+                correctCode: "TI",
+                successMsg: "✨ BOA AMORZINHOO!",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: false 
+            },
+            2: { // User 1.2: Good Times
+                instruction: "<h2>Pista 1.2</h2><p>Procura Pista.</p>",
+                clueText: "Eu colo-me a ti como cola. Vê onde o nosso amor, e BONS TEMPOS são anotados. **Que palavra chave procuras? (9 letras)**",
+                correctCode: "GOODTIMES",
+                successMsg: "✅ Chave Desvendada!",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: true
+            },
+            3: { // User 1.3: Menu de Comida
+                instruction: "<h2>Pista 1.3</h2><p>Procura Pista.</p>",
+                clueText: "Meu Twix, Amorzinhoo! Neste dia, tu és, como todos os dias, o mellhor do mundo! Amo-te muito!! Where to next? **O que está sublinhado? (12 letras)**",
+                correctCode: "MENU DE COMIDA",
+                successMsg: "✅ Desvendaste o Código! Recebeste a **PEÇA #1**!",
+                nextClue: "Procura Pista.",
+                piece: 1, // PEÇA #1
+                blockClue: true
+            },
+            4: { // User 1.4: Data de Início
+                instruction: "<h2>Pista 1.4</h2><p>Procura Pista.</p>",
+                clueText: "Se a Alfacinha come Pizza, ela coze um ovo por dia, num mês, menos 2. Se comemos Sopa, não é dezcabido. Algumas validades são de 2024. **Qual é o código secreto? (8 dígitos)**",
+                correctCode: "29102024",
+                successMsg: "✅ O nosso início está selado!",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: true
+            },
+            5: { // User 1.5: Twix Confirmação
+                instruction: "<h2>Pista 1.5</h2><p>Procura Pista.</p>",
+                clueText: "Duplo prazer...falamos de barritas? **Qual é o código? (3 dígitos)**",
+                correctCode: "123",
+                successMsg: "✅ Twix Confirmado! Viaja com ele!",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: true
+            },
+            6: { // User 1.6: Globo de Roma
+                instruction: "<h2>Pista 1.6</h2><p>Procura Pista.</p>",
+                clueText: "O Twix precisa de viajar pelo mundo. Encontra a ESFERA que corresponde ao íman de Roma. **O que procuras? (11 letras)**",
+                correctCode: "GLOBO DE ROMA",
+                successMsg: "✅ Encontrado o Íman Viajante!",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: true
+            },
+            7: { // User 2.0: Casamento Margarida
+                instruction: "<h2>Pista 2.0</h2><p>Procura Pista.</p>",
+                clueText: "Atrás da moldura que guarda a nossa primeira celebração de um amor, há uma charada. **Que nome procuras? (19 letras)**",
+                correctCode: "CASAMENTO MARGARIDA",
+                successMsg: "✅ Que linda memória! Recebeste a **PEÇA #2**!",
+                nextClue: "Procura Pista.",
+                piece: 2, // PEÇA #2
+                blockClue: true
+            },
+            8: { // User 2.1: Alice
+                instruction: "<h2>Pista 2.1</h2><p>Procura Pista.</p>",
+                clueText: "Não sou o João Ratão, mas olho para ele todos os dias. **Quem sou eu? (5 letras)**",
+                correctCode: "ALICE",
+                successMsg: "✅ Olá, Alice! Hora de avançar.",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: true
+            },
+            9: { // User 2.2: Johnny
+                instruction: "<h2>Pista 2.2</h2><p>Procura Pista.</p>",
+                clueText: "Com o teu nome faz-se luz. **O que será? (6 letras)**",
+                correctCode: "JOHNNY",
+                successMsg: "✅ Johnny desvendado! Vai para o Quarto.",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: true
+            },
+            10: { // User 3.1: Ju
+                instruction: "<h2>Pista 3.1</h2><p>Procura Pista.</p>",
+                clueText: "O Johhny precisa da Ju para ver a cidade. **Quem procuras? (2 letras)**",
+                correctCode: "JU",
+                successMsg: "✅ Ju encontrada! A pista está na luz.",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: true
+            },
+            11: { // User 3.2: Uber Twix Data
+                instruction: "<h2>Pista 3.2</h2><p>Procura Pista.</p>",
+                clueText: "Quando é que nasceu o Uber Twix? será que ele tambem faz uber boat para atravessar o atlântico? **(8 dígitos)**",
+                correctCode: "01082024",
+                successMsg: "✅ Data de Partida Confirmada!",
+                nextClue: "Procura Pista.",
+                piece: 0,
+                blockClue: true
+            },
+            12: { // User 3.3: NYC
+                instruction: "<h2>Pista 3.3</h2><p>Procura Pista.</p>",
+                clueText: "Uber Boat do Porto para onde? **(3 letras)**",
+                correctCode: "NYC",
+                successMsg: "✅ Destino Nova Iorque! Recebeste a **PEÇA #3**!",
+                nextClue: "Procura Pista.",
+                piece: 3, // PEÇA #3
+                blockClue: true
+            },
+            13: { // User 3.4: PARIS
+                instruction: "<h2>Pista 3.4</h2><p>Procura Pista.</p>",
+                clueText: "Vai à Entrada. A planta está a ter uma crise de identidade. Vê no solo. **O que está em falta? (5 letras)**",
+                correctCode: "PARIS",
+                successMsg: "✅ Boa! Achamos que emprestaste esse livro ao vizinho, vê lá fora. Missão de Peças Concluída!",
+                nextClue: "<h2>FIM DA MISSÃO</h2><p>O livro de PARIS tem as tuas últimas recompensas. Parabéns, Amorzinho!</p>",
+                piece: 3, 
+                blockClue: true
+            }
+        };
+
+        // --- Funções Auxiliares ---
+        // A função updateOverlay foi removida, pois não é mais necessária.
+
+        function setActionArea(isInputVisible) {
+            document.getElementById('input-area').style.display = isInputVisible ? 'block' : 'none';
+            document.getElementById('advance-area').style.display = isInputVisible ? 'none' : 'block';
+        }
+
+        function updateUI(content, prompt, placeholder) {
+            document.getElementById('mission-content').innerHTML = content;
+            document.getElementById('input-prompt').textContent = prompt;
+            document.getElementById('user-input').placeholder = placeholder;
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('user-input').value = '';
+        }
+
+        // --- Nova Função de Toggle ---
+        function toggleClueVisibility() {
+            const clueDiv = document.getElementById('actual-clue');
+            const button = document.getElementById('clue-toggle-button');
+            
+            if (clueDiv.classList.contains('revealed')) {
+                return;
+            }
+
+            clueDiv.classList.add('revealed');
+            clueDiv.innerHTML = '<p>' + currentClueText + '</p>'; 
+            button.textContent = 'PISTA REVELADA';
+            button.disabled = true;
+            clueDiv.title = '';
+        }
+
+        // --- Funções de Jogo ---
+
+        function loadStage(stage) {
+            currentStage = stage;
+            const stageData = gameStages[stage];
+            
+            // A chamada a updateOverlay() foi removida.
+
+            if (!stageData) {
+                return;
+            }
+            
+            document.getElementById('pieces-collected').textContent = piecesCollected;
+            
+            // 1. Prepara o conteúdo
+            currentClueText = stageData.clueText; 
+            const instruction = stageData.instruction;
+
+            if (stageData.blockClue) {
+                 // Estágios 2 em diante: Pista Bloqueada
+                 const contentHTML = 
+                     instruction + 
+                     '<div id="actual-clue" class="hidden-clue" title="Clica no botão abaixo para revelar a pista."><p>--- PISTA BLOQUEADA ---</p></div>';
+                 updateUI(contentHTML, 'Introduza o código secreto:', 'RESPOSTA');
+                 document.getElementById('clue-toggle-area').style.display = 'block';
+                 const button = document.getElementById('clue-toggle-button');
+                 button.textContent = 'DESBLOQUEAR PISTA';
+                 button.disabled = false;
+            } else {
+                 // Estágio 1: Pista Totalmente Visível
+                 updateUI(instruction, 'Introduza o código secreto:', 'RESPOSTA');
+                 document.getElementById('clue-toggle-area').style.display = 'none'; // Esconde o botão de bloqueio
+            }
+            
+            setActionArea(true);
+        }
+
+        function checkCode() {
+            const userInput = document.getElementById('user-input').value.trim().toUpperCase().replace(/\s/g, ''); 
+            const stageData = gameStages[currentStage];
+            const feedbackDiv = document.getElementById('feedback');
+            
+            let requiredCode = stageData.correctCode.replace(/\s/g, '');
+            
+            if (userInput === requiredCode) {
+                feedbackDiv.className = 'feedback success';
+                feedbackDiv.innerHTML = stageData.successMsg;
+                
+                // Atualiza contagem de peças
+                if (stageData.piece > piecesCollected) {
+                    piecesCollected = stageData.piece;
+                }
+
+                // Esconde áreas de input/pista, mostra o botão de avançar
+                document.getElementById('clue-toggle-area').style.display = 'none';
+                setActionArea(false); 
+                
+                // Mensagem de sucesso e próxima instrução
+                document.getElementById('mission-content').innerHTML = stageData.successMsg + "<p>" + stageData.nextClue + "</p><p>Clica em AVANÇAR para o próximo desafio!</p>";
+                document.getElementById('advance-area').style.display = 'block';
+                
+                // Trata o FIM DA MISSÃO no estágio 13
+                if (currentStage === 13) {
+                     document.getElementById('mission-content').innerHTML = stageData.successMsg + "<p>" + stageData.nextClue + "</p>";
+                     document.getElementById('advance-area').style.display = 'none'; // Não há mais para avançar
+                }
+
+            } else {
+                feedbackDiv.className = 'feedback error';
+                feedbackDiv.textContent = '❌ Código Incorreto. Tenta de novo, Nugget!';
+                document.getElementById('user-input').value = '';
+            }
+        }
+        
+        function advanceStage() {
+            const nextStage = currentStage + 1;
+            loadStage(nextStage);
+        }
+
+        // --- Inicialização ---
+
+        window.onload = function() {
+            loadStage(1); 
+        };
+        
+        // Listener para revelar a pista se clicar na caixa (como fallback)
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('#actual-clue') && document.getElementById('clue-toggle-area').style.display !== 'none') {
+                toggleClueVisibility();
+            }
+        });
+    </script>
+</body>
+</html>
